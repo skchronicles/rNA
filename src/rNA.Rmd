@@ -1,0 +1,77 @@
+---
+title: "rNA: Assessing the quality of TCGA RNA-seq data"
+author: "Skyler Kuhn"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    navbar:
+      - { title: "About", href: "https://ccbr.github.io/pipeliner-docs/RNA-seq/Theory-and-practical-guide-for-RNA-seq/", align: right }
+    source_code: "embed"
+---
+
+
+```{r setup, include=FALSE}
+# Clear R environment
+rm(list = ls())
+
+# Set the working directory
+knitr::opts_knit$set(root.dir = "/Users/kuhnsa/Desktop/Archive/tcga_gbm/rNA/")
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, dev="png", fig.path="figs/")
+```
+
+
+```{r global, include=FALSE}
+# Library imports
+suppressMessages(library(reshape2))
+suppressMessages(library(plyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(limma))
+suppressMessages(library(edgeR))
+suppressMessages(library(RColorBrewer))
+suppressMessages(library(ComplexHeatmap))
+suppressMessages(library(circlize))
+suppressMessages(library(gridExtra))
+suppressMessages(library(caret))
+
+# Reading in raw counts matrix and QC metadata
+#rawcounts = read.table(file = 'data/TCGA-GBM_Raw_RSEM_Genes.txt', sep = '\t', header = TRUE, row.names = 1)
+rawcounts = read.table(file = 'data/Test_Raw_RSEM_Genes_Dataset.txt', sep = '\t', header = TRUE, row.names = 1)
+multiQC = read.table(file = 'data/multiqc_matrix.txt', sep = '\t', header = TRUE, row.names = 1)
+
+# Create DGEList
+deg = edgeR::DGEList(counts = rawcounts)
+# Filter lowly expressed genes 
+keep_genes = edgeR::filterByExpr(deg)        # Using default: Gene must have 10 reads in >= 70% samples
+deg = deg[keep_genes,,keep.lib.sizes=FALSE]  # Recaluate new lib.sizes after filtering
+# edgeR TMM normalization
+deg = calcNormFactors(deg, method = "TMM")   # calculate scaling norm.factors
+# limma voom normalization
+deg_voom = voom(deg,normalize="quantile")
+```
+
+
+Row 
+-------------------------------------
+    
+### 3D PCA
+
+```{r}
+# Create logCPM PCA 
+
+```
+
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+    
+### Chart 2a
+    
+```{r}
+
+```
+    
+### Chart 2b
+
+```{r}
+```
