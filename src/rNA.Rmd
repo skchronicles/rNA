@@ -37,9 +37,14 @@ suppressMessages(library(caret))
 suppressMessages(library(crosstalk))
 suppressMessages(library(DT))
 
-# Reading in raw counts matrix and QC metadata
+# Reading in raw counts matrix, TIN matrix, and QC metadata
 # rawcounts = read.table(file = 'data/TCGA-GBM_Raw_RSEM_Genes.txt', sep = '\t', header = TRUE, row.names = 1)
 rawcounts = read.table(file = 'data/Test_Raw_RSEM_Genes_Dataset.txt', sep = '\t', header = TRUE, row.names = 1)
+
+# tincounts = read.table(file = 'data/TCGA-GBM_TINs.txt', sep = '\t', header = TRUE, row.names = 1)
+tincounts = read.table(file = 'data/Test_TIN_Dataset.txt', sep = '\t', header = TRUE, row.names = 1)
+# Remove zero variance rows prior to PC
+tincounts = tincounts[apply(tincounts, 1, var) != 0, ]
 
 multiQC = read.table(file = 'data/multiqc_matrix.txt', sep = '\t', header = TRUE)
 rownames(multiQC) = make.names(multiQC$Sample)
@@ -57,9 +62,13 @@ deg_voom = voom(deg, normalize="quantile")
 deg_voom$E <- deg_voom$E[order(apply(deg_voom$E, 1, mad), decreasing = T),]
 
 # Principal Components Analysis
-pca = prcomp(t(as.matrix(deg_voom$E)), scale.=T)
+pca_exp = prcomp(t(as.matrix(deg_voom$E)), scale.=T)$x[,1:3] # Expression PC Analysis
+pca_tin = prcomp(t(as.matrix(tincounts)), scale.=T)$x[,1:3]  # Transcript Integrity Number PC Analysis
+colnames(pca_tin) = c("PC1_tin", "PC2_tin", "PC3_tin")       # Renaming PC cols to avoid collision with gene expression PCs
+
 # Merge both dataframes on rowname
-multiQC = transform(merge(multiQC, as.data.frame(pca$x[,1:3]), by='row.names', all=TRUE), row.names=Row.names, Row.names=NULL)
+multiQC = transform(merge(multiQC, as.data.frame(pca_exp), by='row.names', all=TRUE), row.names=Row.names, Row.names=NULL)
+multiQC = transform(merge(multiQC, as.data.frame(pca_tin), by='row.names', all=TRUE), row.names=Row.names, Row.names=NULL)
 
 # Crosstalk object (inter-widget connectivity)
 shared_metadata = SharedData$new(multiQC)
@@ -75,12 +84,22 @@ Inputs {.sidebar}
 ### Filters
 
 ```{r filters}
-# Total Reads
-filter_select(
-  id = "Sample",
-  label = "Sample ID",
+
+# # Sample ID
+# filter_select(
+#   id = "Sample",
+#   label = "Sample ID",
+#   sharedData = shared_metadata,
+#   group = ~Sample
+# )
+
+
+# Extracted Tissue 
+filter_checkbox(
+  id = "TissueType",
+  label = "Tissue",
   sharedData = shared_metadata,
-  group = ~Sample
+  group = ~TissueType
 )
 
 
@@ -90,15 +109,6 @@ filter_select(
   label = "Sequence Ranges",
   sharedData = shared_metadata,
   group = ~sequence_length
-)
-
-
-# Extracted Tissue 
-filter_checkbox(
-  id = "TissueType",
-  label = "Tissue",
-  sharedData = shared_metadata,
-  group = ~TissueType
 )
 
 
@@ -113,6 +123,18 @@ filter_checkbox(
 #   sep = "",
 #   ticks = FALSE
 # )
+
+# Median TIN
+filter_slider(
+  id = "median_tin",
+  label = "TIN",
+  sharedData = shared_metadata,
+  column = ~median_tin,
+  step = 2,
+  round = TRUE,
+  sep = "",
+  ticks = FALSE
+)
 
 
 # Trimmed Reads 
@@ -257,7 +279,7 @@ filter_slider(
 ```
 
 
-Column {data-width=400}
+Row {data-width=400}
 -------------------------------------
 
 ### Metadata
@@ -282,7 +304,7 @@ shared_metadata %>%
       columnDefs = list(
         list(
           visible = FALSE,
-          targets = c(1, 11, 14, 16, 18, 19, 21:23, 27, 29, 30, 31)   # hide columes
+          targets = c(1, 11, 14, 16, 18, 19, 21:23, 27, 30, 31, 32, 33, 34, 35)   # hide columes
         )
       ), 
       buttons = list(
@@ -310,18 +332,19 @@ shared_metadata %>%
       "% rRNA" = "rRNA_percent_aligned" ,
       "% UniVec" = "uni_vec_percent_aligned",
       "Tissue" = "TissueType",
-      "% Anti-sense" = "percent_antisense_strand"
+      "% Anti-sense" = "percent_antisense_strand",
+      "TIN" = "median_tin"
     )
   )
 ```
 
 
-Column {data-width=600}
+Row {data-width=600}
 -------------------------------------
 
-### 3D PCA
+### Expression PCA
 
-```{r 3d-pca}
+```{r 3d-expression-pca}
 # Principal Components Analysis
 pca = prcomp(t(as.matrix(deg_voom$E)), scale.=T)
 
@@ -335,6 +358,34 @@ cgroups = addNA(cgroups)
 cpalette <- brewer.pal(nlevels(cgroups), "Paired")
 
 p <- plot_ly(shared_metadata, x = ~PC1, y = ~PC2, z = ~PC3, color=cgroups, colors=cpalette, hoverinfo="text",
+            text = ~paste('</br><b> Sample: ', Sample, '</b></br></br> % Aligned: ', percent_aligned, 
+                     '</br> % Dup: ', percent_duplication, '</br> % Coding: ', pct_coding_bases,
+                     '</br> % Intronic: ', pct_intronic_bases, '</br></br> Sequence Range: ', sequence_length,
+                     '</br> Inner Distance: ', inner_distance_maxima, '</br> Insert Size: ', median_insert_size) ) %>% 
+      add_markers() %>%  layout(scene = list(xaxis = list(title = paste0("PC1 (",pc1,"%)")),
+                                              yaxis = list(title = paste0("PC2 (",pc2,"%)")),
+                                              zaxis = list(title = paste0("PC3 (",pc3,"%)"))))
+
+p
+```
+
+
+### TIN PCA
+
+```{r 3d-tin-pca}
+# Principal Components Analysis
+pca = prcomp(t(as.matrix(tincounts)), scale.=T)
+
+# Variance explained for PCs: 1, 2, 3
+pc1 = round(pca$sdev[1]^2/sum(pca$sdev^2)*100,2)
+pc2 = round(pca$sdev[2]^2/sum(pca$sdev^2)*100,2)
+pc3 = round(pca$sdev[3]^2/sum(pca$sdev^2)*100,2)
+
+cgroups = as.factor(multiQC$TissueType)
+cgroups = addNA(cgroups)
+cpalette <- brewer.pal(nlevels(cgroups), "Paired")
+
+p <- plot_ly(shared_metadata, x = ~PC1_tin, y = ~PC2_tin, z = ~PC3_tin, color=cgroups, colors=cpalette, hoverinfo="text",
             text = ~paste('</br><b> Sample: ', Sample, '</b></br></br> % Aligned: ', percent_aligned, 
                      '</br> % Dup: ', percent_duplication, '</br> % Coding: ', pct_coding_bases,
                      '</br> % Intronic: ', pct_intronic_bases, '</br></br> Sequence Range: ', sequence_length,
