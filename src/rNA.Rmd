@@ -365,8 +365,8 @@ p <- plot_ly(shared_metadata, x = ~PC1, y = ~PC2, z = ~PC3, color=cgroups, color
       add_markers() %>%  layout(scene = list(xaxis = list(title = paste0("PC1 (",pc1,"%)")),
                                               yaxis = list(title = paste0("PC2 (",pc2,"%)")),
                                               zaxis = list(title = paste0("PC3 (",pc3,"%)"))))
-
-p
+# Important: disable onclick() events
+plotly::highlight(p, on = NULL) # fixes unexpected behavior when multiple plots via crosstalk
 ```
 
 
@@ -394,7 +394,8 @@ p <- plot_ly(shared_metadata, x = ~PC1_tin, y = ~PC2_tin, z = ~PC3_tin, color=cg
                                               yaxis = list(title = paste0("PC2 (",pc2,"%)")),
                                               zaxis = list(title = paste0("PC3 (",pc3,"%)"))))
 
-p
+# Important: disable onclick() events
+plotly::highlight(p, on = NULL) # fixes unexpected behavior when multiple plots via crosstalk
 ```
 
 
