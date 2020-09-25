@@ -23,25 +23,21 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE, dev="png", fig.path="figs/")
 
 ```{r global, include=FALSE}
 # Library imports
-suppressMessages(library(reshape2))
 suppressMessages(library(plyr))
 suppressMessages(library(plotly))
 suppressMessages(library(ggplot2))
 suppressMessages(library(limma))
 suppressMessages(library(edgeR))
 suppressMessages(library(RColorBrewer))
-suppressMessages(library(ComplexHeatmap))
-suppressMessages(library(circlize))
 suppressMessages(library(gridExtra))
-suppressMessages(library(caret))
 suppressMessages(library(crosstalk))
 suppressMessages(library(DT))
 
 # Reading in raw counts matrix, TIN matrix, and QC metadata
-# rawcounts = read.table(file = 'data/TCGA-GBM_Raw_RSEM_Genes.txt', sep = '\t', header = TRUE, row.names = 1)
+#rawcounts = read.table(file = 'data/TCGA-GBM_Raw_RSEM_Genes.txt', sep = '\t', header = TRUE, row.names = 1)
 rawcounts = read.table(file = 'data/Test_Raw_RSEM_Genes_Dataset.txt', sep = '\t', header = TRUE, row.names = 1)
 
-# tincounts = read.table(file = 'data/TCGA-GBM_TINs.txt', sep = '\t', header = TRUE, row.names = 1)
+#tincounts = read.table(file = 'data/TCGA-GBM_TINs.txt', sep = '\t', header = TRUE, row.names = 1)
 tincounts = read.table(file = 'data/Test_TIN_Dataset.txt', sep = '\t', header = TRUE, row.names = 1)
 # Remove zero variance rows prior to PC
 tincounts = tincounts[apply(tincounts, 1, var) != 0, ]
@@ -100,6 +96,15 @@ filter_checkbox(
   label = "Tissue",
   sharedData = shared_metadata,
   group = ~TissueType
+)
+
+
+# Tissue Source Site 
+filter_checkbox(
+  id = "TSS_Site",
+  label = "Tissue Source",
+  sharedData = shared_metadata,
+  group = ~TSS_Site
 )
 
 
@@ -279,7 +284,7 @@ filter_slider(
 ```
 
 
-Row {data-width=400}
+Row {data-height=400}
 -------------------------------------
 
 ### Metadata
@@ -304,7 +309,7 @@ shared_metadata %>%
       columnDefs = list(
         list(
           visible = FALSE,
-          targets = c(1, 11, 14, 16, 18, 19, 21:23, 27, 30, 31, 32, 33, 34, 35)   # hide columes
+          targets = c(1, 11, 14, 16, 18, 19, 21:23, 27, 31, 32, 33, 34, 35, 36)   # hide columes
         )
       ), 
       buttons = list(
@@ -333,13 +338,14 @@ shared_metadata %>%
       "% UniVec" = "uni_vec_percent_aligned",
       "Tissue" = "TissueType",
       "% Anti-sense" = "percent_antisense_strand",
-      "TIN" = "median_tin"
+      "TIN" = "median_tin",
+      "Tissue Source" = "TSS_Site"
     )
   )
 ```
 
 
-Row {data-width=600}
+Row {data-height=600}
 -------------------------------------
 
 ### Expression PCA
@@ -358,9 +364,9 @@ cgroups = addNA(cgroups)
 cpalette <- brewer.pal(nlevels(cgroups), "Paired")
 
 p <- plot_ly(shared_metadata, x = ~PC1, y = ~PC2, z = ~PC3, color=cgroups, colors=cpalette, hoverinfo="text",
-            text = ~paste('</br><b> Sample: ', Sample, '</b></br></br> % Aligned: ', percent_aligned, 
+            text = ~paste('</br><b> Sample: ', Sample, '</br> Tissue Source: ', TSS_Site, '</b></br></br> % Aligned: ', percent_aligned, 
                      '</br> % Dup: ', percent_duplication, '</br> % Coding: ', pct_coding_bases,
-                     '</br> % Intronic: ', pct_intronic_bases, '</br></br> Sequence Range: ', sequence_length,
+                     '</br> % Intronic: ', pct_intronic_bases, '</br></br> TIN: ', median_tin, '</br> Sequence Range: ', sequence_length,
                      '</br> Inner Distance: ', inner_distance_maxima, '</br> Insert Size: ', median_insert_size) ) %>% 
       add_markers() %>%  layout(scene = list(xaxis = list(title = paste0("PC1 (",pc1,"%)")),
                                               yaxis = list(title = paste0("PC2 (",pc2,"%)")),
@@ -386,9 +392,9 @@ cgroups = addNA(cgroups)
 cpalette <- brewer.pal(nlevels(cgroups), "Paired")
 
 p <- plot_ly(shared_metadata, x = ~PC1_tin, y = ~PC2_tin, z = ~PC3_tin, color=cgroups, colors=cpalette, hoverinfo="text",
-            text = ~paste('</br><b> Sample: ', Sample, '</b></br></br> % Aligned: ', percent_aligned, 
+            text = ~paste('</br><b> Sample: ', Sample, '</br> Tissue Source: ', TSS_Site, '</b></br></br> % Aligned: ', percent_aligned, 
                      '</br> % Dup: ', percent_duplication, '</br> % Coding: ', pct_coding_bases,
-                     '</br> % Intronic: ', pct_intronic_bases, '</br></br> Sequence Range: ', sequence_length,
+                     '</br> % Intronic: ', pct_intronic_bases, '</br></br> TIN: ', median_tin, '</br> Sequence Range: ', sequence_length,
                      '</br> Inner Distance: ', inner_distance_maxima, '</br> Insert Size: ', median_insert_size) ) %>% 
       add_markers() %>%  layout(scene = list(xaxis = list(title = paste0("PC1 (",pc1,"%)")),
                                               yaxis = list(title = paste0("PC2 (",pc2,"%)")),
@@ -398,6 +404,139 @@ p <- plot_ly(shared_metadata, x = ~PC1_tin, y = ~PC2_tin, z = ~PC3_tin, color=cg
 plotly::highlight(p, on = NULL) # fixes unexpected behavior when multiple plots via crosstalk
 ```
 
+Subplots {data-icon="ion-grid"}
+=====================================
+
+**2D Expression PCAs colored by different features** 
+
+Row
+-------------------------------------
+
+```{r pca-initialize}
+# Principal Components Analysis
+pca = prcomp(t(as.matrix(deg_voom$E)), scale.=T)
+
+# Variance explained for PCs: 1, 2, 3
+pc1 = round(pca$sdev[1]^2/sum(pca$sdev^2)*100,2)
+pc2 = round(pca$sdev[2]^2/sum(pca$sdev^2)*100,2)
+
+```
+
+### TSS_Site
+
+```{r colored-by-tss-site}
+# Gene Expression PCA colored by TSS Site 
+g <- ggplot(multiQC, aes(PC1, PC2, color = TSS_Site), xlab) + geom_point(size = multiQC$TissueType) + theme_minimal() +
+        labs(color = "Tissue Source", x = paste0("PC1 (",pc1,"%)"), y = paste0("PC1 (",pc2,"%)"))
+        
+g
+```   
+    
+### TIN
+
+```{r colored-by-tin}
+# Gene Expression PCA colored by TIN 
+g <- ggplot(multiQC, aes(PC1, PC2, color = median_tin), xlab) + geom_point(size = multiQC$TissueType) + theme_minimal() +
+        labs(color = "TIN", x = paste0("PC1 (",pc1,"%)"), y = paste0("PC1 (",pc2,"%)"))
+        
+g
+```   
+    
+### % Dups
+
+```{r colored-by-dups}
+# Gene Expression PCA colored by % Duplicates
+g <- ggplot(multiQC, aes(PC1, PC2, color = percent_duplication), xlab) + geom_point(size = multiQC$TissueType) + theme_minimal() +
+        labs(color = "% Dups", x = paste0("PC1 (",pc1,"%)"), y = paste0("PC1 (",pc2,"%)"))
+
+g
+```
+
+### % Aligned
+
+```{r colored-by-alignment}
+# Gene Expression PCA colored by % Aligned
+g <- ggplot(multiQC, aes(PC1, PC2, color = percent_aligned), xlab) + geom_point(size = multiQC$TissueType) + theme_minimal() +
+        labs(color = "% Aligned", x = paste0("PC1 (",pc1,"%)"), y = paste0("PC1 (",pc2,"%)"))
+
+g
+```
+
+Row
+-------------------------------------
+   
+### CV Coverage
+
+```{r colored-by-cv-coverage}
+# Gene Expression PCA colored by CV Coverage
+g <- ggplot(multiQC, aes(PC1, PC2, color = median_cv_coverage), xlab) + geom_point(size = multiQC$TissueType) + theme_minimal() +
+        labs(color = "CV Coverage", x = paste0("PC1 (",pc1,"%)"), y = paste0("PC1 (",pc2,"%)"))
+        
+g
+```   
+
+### 3' Prime Bias
+
+```{r colored-by-3-prime-coverage}
+# Gene Expression PCA colored by 3' Prime Coverage
+g <- ggplot(multiQC, aes(PC1, PC2, color = median_3prime_bias), xlab) + geom_point(size = multiQC$TissueType) + theme_minimal() +
+        labs(color = "3' Prime Coverage", x = paste0("PC1 (",pc1,"%)"), y = paste0("PC1 (",pc2,"%)"))
+        
+g
+``` 
+
+### Insert Size
+
+```{r colored-by-insert-size}
+# Gene Expression PCA colored by Insert Size
+g <- ggplot(multiQC, aes(PC1, PC2, color = median_insert_size), xlab) + geom_point(size = multiQC$TissueType) + theme_minimal() +
+        labs(color = "Insert Size", x = paste0("PC1 (",pc1,"%)"), y = paste0("PC1 (",pc2,"%)"))
+
+g
+```
+
+### Inner Distance
+
+```{r colored-by-inner-distance}
+# Gene Expression PCA colored by Inner Distance
+g <- ggplot(multiQC, aes(PC1, PC2, color = inner_distance_maxima), xlab) + geom_point(size = multiQC$TissueType) + theme_minimal() +
+        labs(color = "Inner Distance", x = paste0("PC1 (",pc1,"%)"), y = paste0("PC1 (",pc2,"%)"))
+
+g
+```
+
+Row
+-------------------------------------
+   
+### % Coding
+
+```{r colored-by-coding}
+# Gene Expression PCA colored by % Coding
+g <- ggplot(multiQC, aes(PC1, PC2, color = pct_coding_bases), xlab) + geom_point(size = multiQC$TissueType) + theme_minimal() +
+        labs(color = "% Coding", x = paste0("PC1 (",pc1,"%)"), y = paste0("PC1 (",pc2,"%)"))
+        
+g
+```   
+    
+### % rRNA
+
+```{r colored-by-rrna}
+# Gene Expression PCA colored by % rRNA
+g <- ggplot(multiQC, aes(PC1, PC2, color = rRNA_percent_aligned), xlab) + geom_point(size = multiQC$TissueType) + theme_minimal() +
+        labs(color = "% rRNA", x = paste0("PC1 (",pc1,"%)"), y = paste0("PC1 (",pc2,"%)"))
+
+g
+```
+
+### % Anti-sense
+
+```{r colored-by-anti-sense}
+# Gene Expression PCA colored by % Anti-sense
+g <- ggplot(multiQC, aes(PC1, PC2, color = percent_antisense_strand), xlab) + geom_point(size = multiQC$TissueType) + theme_minimal() +
+        labs(color = "% Anti-sense", x = paste0("PC1 (",pc1,"%)"), y = paste0("PC1 (",pc2,"%)"))
+
+g
+```
 
 
 Information {data-orientation=columns data-icon="fa-info-circle"}
@@ -468,3 +607,4 @@ Column {data-width=400}
 ```{r}
 sessionInfo()
 ```
+
