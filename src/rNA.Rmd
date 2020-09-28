@@ -34,11 +34,11 @@ suppressMessages(library(crosstalk))
 suppressMessages(library(DT))
 
 # Reading in raw counts matrix, TIN matrix, and QC metadata
-#rawcounts = read.table(file = 'data/TCGA-GBM_Raw_RSEM_Genes.txt', sep = '\t', header = TRUE, row.names = 1)
-rawcounts = read.table(file = 'data/Test_Raw_RSEM_Genes_Dataset.txt', sep = '\t', header = TRUE, row.names = 1)
+rawcounts = read.table(file = 'data/TCGA-GBM_Raw_RSEM_Genes.txt', sep = '\t', header = TRUE, row.names = 1)
+#rawcounts = read.table(file = 'data/Test_Raw_RSEM_Genes_Dataset.txt', sep = '\t', header = TRUE, row.names = 1)
 
-#tincounts = read.table(file = 'data/TCGA-GBM_TINs.txt', sep = '\t', header = TRUE, row.names = 1)
-tincounts = read.table(file = 'data/Test_TIN_Dataset.txt', sep = '\t', header = TRUE, row.names = 1)
+tincounts = read.table(file = 'data/TCGA-GBM_TINs.txt', sep = '\t', header = TRUE, row.names = 1)
+#tincounts = read.table(file = 'data/Test_TIN_Dataset.txt', sep = '\t', header = TRUE, row.names = 1)
 # Remove zero variance rows prior to PC
 tincounts = tincounts[apply(tincounts, 1, var) != 0, ]
 
@@ -331,7 +331,7 @@ shared_metadata %>%
       "Insert Size " = "median_insert_size",
       "Avg MapQ" = "mean_mapping_quality",
       "Coverage" = "mean_coverage",
-      "% Coding" = "pct_mrna_bases",
+      "% Coding" = "pct_coding_bases",
       "% Intronic" = "pct_intronic_bases",
       "CV Coverage" = "median_cv_coverage",
       "% rRNA" = "rRNA_percent_aligned" ,
