@@ -32,6 +32,7 @@ suppressMessages(library(RColorBrewer))
 suppressMessages(library(gridExtra))
 suppressMessages(library(crosstalk))
 suppressMessages(library(DT))
+suppressMessages(library(reshape2))
 
 # Reading in raw counts matrix, TIN matrix, and QC metadata
 rawcounts = read.table(file = 'data/TCGA-GBM_Raw_RSEM_Genes.txt', sep = '\t', header = TRUE, row.names = 1)
@@ -546,6 +547,100 @@ g <- ggplot(multiQC, aes(PC1, PC2, color = percent_antisense_strand), xlab) + ge
           scale_colour_gradientn(colours = viridis::viridis(100))
 
 g
+```
+
+
+Corr plots {data-orientation=columns data-icon="ion-grid"}
+=====================================
+
+**Pair-wise correlation of features** 
+
+Column {data-width=500}
+-------------------------------------
+
+### Correlation Heatmap 
+
+```{r correlation-matrix, dpi=300}
+
+# Helper Function
+reorder_cormat <- function(cormat){
+  # Use correlation between variables as distance for heirarchincal clustering
+  dd <- as.dist((1-cormat)/2)
+  hc <- hclust(dd)
+  cormat <-cormat[hc$order, hc$order]
+}
+
+# Remove all columns that are categorical 
+numericQC = multiQC[,-which(sapply(multiQC, class) == "factor")]
+
+# Additional columns to remove 
+additional_remove <- names(numericQC) %in% c("total_read_pairs", "mean_insert_size", "avg_aligned_read_length", "pct_mrna_bases",
+                                             "pct_utr_bases", "pct_intergenic_bases", "median_5prime_to_3prime_bias", "median_5prime_bias", 
+                                             "median_3prime_bias", "percent_sense_strand", "PC1_tin", "PC2_tin", "PC3_tin")
+# Cleaned numerical QC dataframe
+numericQC = numericQC[!additional_remove]
+
+# Pair-wise spearman correlation matrix
+cormatrix = round(cor(numericQC, method = "spearman"),2)
+
+# Get upper triangle of the correlation matrix
+cormatrix[lower.tri(cormatrix)] <- NA
+
+# Remove lower trinagle and reshape from wide to long format
+cormat <- melt(cormatrix, na.rm = TRUE)
+
+# Correlation ggheatmap
+ggheatmap <- ggplot(cormat, aes(Var2, Var1, fill = value)) + geom_tile(color = "white") + 
+                scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Spearman\nCorrelation") + 
+                theme_minimal() + theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 9, hjust = 1)) + coord_fixed() +
+                theme(axis.title.x = element_blank(), 
+                      axis.title.y = element_blank(),
+                      panel.grid.major = element_blank(),
+                      panel.border = element_blank(),
+                      panel.background = element_blank(),
+                      axis.ticks = element_blank(),
+                      legend.justification = c(1, 0),
+                      legend.position = c(0.6, 0.7),
+                      legend.direction = "horizontal") +
+                guides(fill = guide_colorbar(barwidth = 8, barheight = 1, title.position = "top", title.hjust = 0.5))
+ggheatmap
+```
+
+Column {data-width=500}
+-------------------------------------
+
+### Correlation Heatmap with Heirarchical Clustering
+
+```{r heirarchical-correlation-matrix, dpi=300}
+
+# Pair-wise spearman correlation matrix
+cormatrix = round(cor(numericQC, method = "spearman"),2)
+
+# Reorder the correlation matrix based on hierarchical clustering of the correlation coeff
+cormat <- reorder_cormat(cormatrix)
+
+# Get upper triangle of the correlation matrix
+cormat[lower.tri(cormat)] <- NA
+
+# Remove lower trinagle and reshape from wide to long format
+cormat <- melt(cormat, na.rm = TRUE)
+
+# Correlation ggheatmap
+ggheatmap <- ggplot(cormat, aes(Var2, Var1, fill = value)) + geom_tile(color = "white") + 
+                scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Spearman\nCorrelation") + 
+                theme_minimal() + theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 9, hjust = 1)) + coord_fixed() +
+                theme(axis.title.x = element_blank(), 
+                      axis.title.y = element_blank(),
+                      panel.grid.major = element_blank(),
+                      panel.border = element_blank(),
+                      panel.background = element_blank(),
+                      axis.ticks = element_blank(),
+                      legend.justification = c(1, 0),
+                      legend.position = c(0.6, 0.7),
+                      legend.direction = "horizontal") +
+                guides(fill = guide_colorbar(barwidth = 8, barheight = 1, title.position = "top", title.hjust = 0.5))
+
+ggheatmap
 ```
 
 
