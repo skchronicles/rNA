@@ -1,6 +1,11 @@
 ---
 title: "rNA: Assessing the quality of TCGA RNA-seq data"
 author: "Skyler Kuhn"
+params:
+  raw: "/path/to/raw/counts/matrix.tsv"
+  tin: "/path/to/tin/counts/martrix.tsv"
+  qc: "/path/to/qc/table.tsv"
+  wdir: "/path/to/output/directory"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
@@ -12,11 +17,11 @@ output:
 
 ```{r setup, include=FALSE}
 # Clear R environment
-rm(list = ls())
+# rm(list = ls())
 set.seed(42)
 
 # Set the working directory
-knitr::opts_knit$set(root.dir = "/Users/kuhnsa/Desktop/Archive/tcga_gbm/rNA/")
+knitr::opts_knit$set(root.dir = params$wdir)
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE, dev="png", fig.path="figs/")
 ```
 
@@ -37,15 +42,16 @@ suppressMessages(library(ComplexHeatmap))
 suppressMessages(library(circlize))
 
 # Reading in raw counts matrix, TIN matrix, and QC metadata
-rawcounts = read.table(file = 'data/TCGA-GBM_Raw_RSEM_Genes.txt', sep = '\t', header = TRUE, row.names = 1)
+rawcounts = read.table(file = params$raw, sep = '\t', header = TRUE, row.names = 1)
 #rawcounts = read.table(file = 'data/Test_Raw_RSEM_Genes_Dataset.txt', sep = '\t', header = TRUE, row.names = 1)
 
-tincounts = read.table(file = 'data/TCGA-GBM_TINs.txt', sep = '\t', header = TRUE, row.names = 1)
+tincounts = read.table(file = params$tin, sep = '\t', header = TRUE, row.names = 1)
 #tincounts = read.table(file = 'data/Test_TIN_Dataset.txt', sep = '\t', header = TRUE, row.names = 1)
+
 # Remove zero variance rows prior to PC
 tincounts = tincounts[apply(tincounts, 1, var) != 0, ]
 
-multiQC = read.table(file = 'data/multiqc_matrix.txt', sep = '\t', header = TRUE)
+multiQC = read.table(file = params$qc, sep = '\t', header = TRUE)
 rownames(multiQC) = make.names(multiQC$Sample)
 
 # Create DGEList
@@ -74,7 +80,7 @@ shared_metadata = SharedData$new(multiQC)
 ```
 
 
-Interactives {data-icon="ion-stats-bars"}
+Interactives {data-icon="ion-android-options"}
 =====================================  
 
 Inputs {.sidebar}
@@ -552,7 +558,7 @@ g
 ```
 
 
-Corr plots {data-orientation=columns data-icon="ion-grid"}
+Corr plots {data-orientation=columns data-icon="ion-stats-bars"}
 =====================================
 
 **Feature correlation plots** 
@@ -725,4 +731,3 @@ Column {data-width=400}
 ```{r}
 sessionInfo()
 ```
-
