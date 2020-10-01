@@ -33,6 +33,8 @@ suppressMessages(library(gridExtra))
 suppressMessages(library(crosstalk))
 suppressMessages(library(DT))
 suppressMessages(library(reshape2))
+suppressMessages(library(ComplexHeatmap))
+suppressMessages(library(circlize))
 
 # Reading in raw counts matrix, TIN matrix, and QC metadata
 rawcounts = read.table(file = 'data/TCGA-GBM_Raw_RSEM_Genes.txt', sep = '\t', header = TRUE, row.names = 1)
@@ -553,14 +555,14 @@ g
 Corr plots {data-orientation=columns data-icon="ion-grid"}
 =====================================
 
-**Pair-wise correlation of features** 
+**Feature correlation plots** 
 
 Column {data-width=500}
 -------------------------------------
 
-### Correlation Heatmap 
+### Heirarchical clustering of pairwise spearman correlation coefficients 
 
-```{r correlation-matrix, dpi=300}
+```{r heirarchical-correlation-matrix, dpi=300}
 
 # Helper Function
 reorder_cormat <- function(cormat){
@@ -579,39 +581,6 @@ additional_remove <- names(numericQC) %in% c("total_read_pairs", "mean_insert_si
                                              "median_3prime_bias", "percent_sense_strand", "PC1_tin", "PC2_tin", "PC3_tin")
 # Cleaned numerical QC dataframe
 numericQC = numericQC[!additional_remove]
-
-# Pair-wise spearman correlation matrix
-cormatrix = round(cor(numericQC, method = "spearman"),2)
-
-# Get upper triangle of the correlation matrix
-cormatrix[lower.tri(cormatrix)] <- NA
-
-# Remove lower trinagle and reshape from wide to long format
-cormat <- melt(cormatrix, na.rm = TRUE)
-
-# Correlation ggheatmap
-ggheatmap <- ggplot(cormat, aes(Var2, Var1, fill = value)) + geom_tile(color = "white") + 
-                scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Spearman\nCorrelation") + 
-                theme_minimal() + theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 9, hjust = 1)) + coord_fixed() +
-                theme(axis.title.x = element_blank(), 
-                      axis.title.y = element_blank(),
-                      panel.grid.major = element_blank(),
-                      panel.border = element_blank(),
-                      panel.background = element_blank(),
-                      axis.ticks = element_blank(),
-                      legend.justification = c(1, 0),
-                      legend.position = c(0.6, 0.7),
-                      legend.direction = "horizontal") +
-                guides(fill = guide_colorbar(barwidth = 8, barheight = 1, title.position = "top", title.hjust = 0.5))
-ggheatmap
-```
-
-Column {data-width=500}
--------------------------------------
-
-### Correlation Heatmap with Heirarchical Clustering
-
-```{r heirarchical-correlation-matrix, dpi=300}
 
 # Pair-wise spearman correlation matrix
 cormatrix = round(cor(numericQC, method = "spearman"),2)
@@ -643,6 +612,35 @@ ggheatmap <- ggplot(cormat, aes(Var2, Var1, fill = value)) + geom_tile(color = "
 ggheatmap
 ```
 
+Column {data-width=500}
+-------------------------------------
+
+### Complete linkage clustering of PC loadings with QC annotations
+
+```{r loadings-heatmap, dpi=300}
+
+# Output Dimensions (inches)
+plot_width=10
+plot_height=4
+
+# Principal Components Analysis: 5 PCs as heatmap input
+pca_exp = prcomp(t(as.matrix(deg_voom$E)), scale.=T)$x[,1:5] # Expression PC Analysis
+
+# Additional columns to remove 
+additional_remove <- names(numericQC) %in% c("PC1", "PC2", "PC3")
+# Cleaned numerical QC dataframe
+numericQC = numericQC[!additional_remove]
+
+column_annotations = HeatmapAnnotation(df = numericQC)
+
+cheatmap <- ComplexHeatmap::Heatmap(as.matrix(t(pca_exp)), 
+                    col=colorRamp2(seq(0, max(pca_exp, na.rm = T), length.out = 20), colorRampPalette(brewer.pal(9, "YlGnBu"))(20)),
+                    bottom_annotation = column_annotations, 
+                    show_column_names=F, 
+                    show_heatmap_legend = F) # Turning off to control the placement
+
+draw(cheatmap, show_annotation_legend = FALSE)
+```
 
 Information {data-orientation=columns data-icon="fa-info-circle"}
 ===================================== 
