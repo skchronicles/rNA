@@ -69,6 +69,13 @@ Rscript rNA.R -m src/rNA.Rmd \
               -q data/multiqc_matrix.txt -o "$PWD"
 ```
 
+If you are recieving an error that `pandoc was not found`, you will need to set the following bash enviroment variable: `RSTUDIO_PANDO`. You can add the line below to your `~/.bash_profile` or your `~/.bashrc` so it will be set as soon as you open a new shell.
+
+```bash
+echo 'export RSTUDIO_PANDOC=/Applications/RStudio.app/Contents/MacOS/pandoc' >> ~/.bash_profile
+source ~/.bash_profile
+```
+
 ### 4. Filtering Critea
 
 **General Recommendations** 

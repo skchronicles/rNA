@@ -625,22 +625,20 @@ Column {data-width=500}
 
 ```{r loadings-heatmap, dpi=300}
 
-# Output Dimensions (inches)
-plot_width=10
-plot_height=4
-
 # Principal Components Analysis: 5 PCs as heatmap input
 pca_exp = prcomp(t(as.matrix(deg_voom$E)), scale.=T)$x[,1:5] # Expression PC Analysis
 
 # Additional columns to remove 
 additional_remove <- names(numericQC) %in% c("PC1", "PC2", "PC3")
+
 # Cleaned numerical QC dataframe
 numericQC = numericQC[!additional_remove]
 
 column_annotations = HeatmapAnnotation(df = numericQC)
 
 cheatmap <- ComplexHeatmap::Heatmap(as.matrix(t(pca_exp)), 
-                    col=colorRamp2(seq(0, max(pca_exp, na.rm = T), length.out = 20), colorRampPalette(brewer.pal(9, "YlGnBu"))(20)),
+                    col=colorRamp2(seq(-max(abs(pca_exp), na.rm = T), max(abs(pca_exp), na.rm = T), length.out = 20), 
+                                   rev(colorRampPalette(brewer.pal(9, "PuOr"))(20))),
                     bottom_annotation = column_annotations, 
                     show_column_names=F, 
                     show_heatmap_legend = F) # Turning off to control the placement
