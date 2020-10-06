@@ -63,8 +63,11 @@ deg = deg[keep_genes,,keep.lib.sizes=FALSE]  # Recaluate new lib.sizes after fil
 deg = calcNormFactors(deg, method = "TMM")   # calculate scaling norm.factors
 # limma voom normalization
 deg_voom = voom(deg, normalize="quantile") 
+
 # Order genes by MAD
 deg_voom$E <- deg_voom$E[order(apply(deg_voom$E, 1, mad), decreasing = T),]
+# Remove zero variance rows prior to PC
+deg_voom$E <- deg_voom$E[apply(deg_voom$E, 1, var) != 0, ]
 
 # Principal Components Analysis
 pca_exp = prcomp(t(as.matrix(deg_voom$E)), scale.=T)$x[,1:3] # Expression PC Analysis

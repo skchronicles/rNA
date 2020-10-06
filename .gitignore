@@ -173,3 +173,6 @@ dmypy.json
 
 # HTML report
 */*.html
+
+# Rmarkdown figs
+figs/
