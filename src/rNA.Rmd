@@ -1,6 +1,6 @@
 ---
-title: "rNA: Assessing the quality of TCGA RNA-seq data"
-author: "Skyler Kuhn"
+title: "rNA: report Not Applicable"
+author: "Assess the quality of large RNA-seq cohorts"
 params:
   raw: "/path/to/raw/counts/matrix.tsv"
   tin: "/path/to/tin/counts/martrix.tsv"
