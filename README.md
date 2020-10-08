@@ -1,6 +1,6 @@
 # rNA
 
-[![GitHub issues](https://img.shields.io/github/issues/CCBR/rNA)](https://github.com/CCBR/rNA/issues)  [![GitHub license](https://img.shields.io/github/license/CCBR/rNA)](https://github.com/CCBR/rNA/blob/master/LICENSE)
+[![GitHub issues](https://img.shields.io/github/issues/skchronicles/rNA)](https://github.com/skchronicles/rNA/issues)  [![GitHub license](https://img.shields.io/github/license/skchronicles/rNA)](https://github.com/skchronicles/rNA/blob/master/LICENSE)
 
 View a demo of an [interactive rNA report](http://ccbr.github.io/rNA/rNA.html) with The Cancer Genome Atlas Glioblastoma Multiforme (TCGA-GBM) RNA-seq data.  
 
@@ -20,7 +20,7 @@ View a demo of an [interactive rNA report](http://ccbr.github.io/rNA/rNA.html) w
 
 ### 1. Introduction
 
-CCBR's report Not Applicable, as known as `rNA`, is an interactive report to allow users to identify problematic samples prior to downstream analysis. rNA has been designed to work with the output from our RNA-seq pipeline.
+report Not Applicable, as known as `rNA`, is an interactive report to allow users to identify problematic samples prior to downstream analysis. rNA has been designed to work with the output from our RNA-seq pipeline.
 
 Before drawing biological conclusions, it is important to assess the quality control of each sample to ensure that there are no signs of sequencing error or systematic biases in your data. Modern high-throughput sequencers generate millions of reads per run, and in the real world, problems can arise. rNA allows a user to interactively filter samples based on different quality-control metrics. This is especially useful when working with large cohorts with hundreds of samples.
 
