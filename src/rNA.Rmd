@@ -591,6 +591,9 @@ additional_remove <- names(numericQC) %in% c("total_read_pairs", "mean_insert_si
 # Cleaned numerical QC dataframe
 numericQC = numericQC[!additional_remove]
 
+# Remove zero-variance columns to prevent any hlclust() errors
+numericQC = numericQC[,-which(apply(numericQC, 2, var) == 0)]
+
 # Pair-wise spearman correlation matrix
 cormatrix = round(cor(numericQC, method = "spearman"),2)
 
