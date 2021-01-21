@@ -1,5 +1,7 @@
 # rNA
 
+**Please note:** This repository is no longer maintained. All development of `rNA` has moved to another location. Please visit [our new repository](https://github.com/CCBR/rNA) for all new and future development. 
+
 [![GitHub issues](https://img.shields.io/github/issues/skchronicles/rNA)](https://github.com/skchronicles/rNA/issues)  [![GitHub license](https://img.shields.io/github/license/skchronicles/rNA)](https://github.com/skchronicles/rNA/blob/master/LICENSE)
 
 <img src="data/rNA-demo.png">
